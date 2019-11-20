@@ -8,7 +8,7 @@
 
 		<link rel="stylesheet" href="css/reset.css">
 		<link rel="stylesheet" href="css/reveal.css">
-		<link rel="stylesheet" href="css/theme/black.css">
+		<link rel="stylesheet" href="css/theme/solarized.css">
 
 		<!-- Theme used for syntax highlighting of code -->
 		<link rel="stylesheet" href="lib/css/monokai.css">
@@ -25,8 +25,295 @@
 	<body>
 		<div class="reveal">
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+				  <section>
+              <h2>Declarative concurrency with ZIO STM</h2>
+          </section>
+          <section>
+              <h3>About me</h3>
+              <ul>
+                  <li>@dejan_mijic</li>
+                  <li>Software engineer @ Zalando SE</li>
+                  <li>OSS contributor</li>
+                  <li>Trivia collector</li>
+              </ul>
+          </section>
+          <section>
+              <h3>Concurrency is terrible</h3>
+              <ul>
+                  <li class="fragment">Race conditions</li>
+                  <li class="fragment">Deadlocks</li>
+                  <li class="fragment">Contention</li>
+                  <li class="fragment">Composability</li>
+                  <li class="fragment">...</li>
+              </ul>
+          </section>
+          <section data-background="/images/boom.gif">
+          </section>
+          <section>
+              <h3>Software transactional memory</h3>
+          </section>
+          <section>
+              <h3>Basic idea</h3>
+              <ul>
+                  <li class="fragment">accumulate transaction log</li>
+                  <li class="fragment">rollback failures</li>
+                  <li class="fragment">retry when not ready</li>
+                  <li class="fragment">commit otherwise</li>
+              </ul>
+          </section>
+          <section>
+              <h3>STM[E, A]</h3>
+              <ul>
+                  <li>fails with error E</li>
+                  <li>succeeds with value A</li>
+              </ul>
+          </section>
+          <section>
+              <h3>STM - succeed & fail</h3>
+              <pre><code class="hljs scala" data-trim>
+              object STM {
+                def fail[E](e: E): STM[E, Nothing]
+                def succeed[A](a: A): STM[Nothing, A]
+              }
+
+              val success = STM.succeed("Hello!")
+              val failure = STM.fail("Nothing to see here...")
+              </code></pre>
+          </section>
+          <section>
+              <h3>STM - chaining</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait STM[E, A] {
+                def map[B](f: A => B): STM[E, B]
+                def flatMap[E1 >: E, B](f: A => STM[E1, B]): STM[E1, B]
+              }
+
+              val sum: STM[Nothing, Int] =
+                for {
+                  a <- account1.get
+                  b <- account2.get
+                } yield a + b
+              </code></pre>
+          </section>
+          <section>
+              <h3>STM - zipping</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait STM[E, A] {
+                def zip[E1 >: E, B](that: => STM[E1, B]): STM[E1, (A, B)]
+              }
+
+              val bothAccounts: STM[Nothing, (Long, Long)] =
+                account1.get zip account2.get
+              </code></pre>
+          </section>
+          <section>
+              <h3>STM - folds</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait STM[E, A] {
+                def fold[B](f: E => B, g: A => B): STM[Nothing, B]
+                def foldM[E1, B](f: E => STM[E1, B], g: A => STM[E1, B]): STM[E1, B]
+              }
+
+              val recovered: STM[Nothing, Boolean] =
+                failure.fold(_ => false, _ => true)
+              </code></pre>
+          </section>
+          <section>
+              <h3>STM - retry</h3>
+              <pre><code class="hljs scala" data-trim>
+              object STM {
+                val retry: STM[Nothing, Nothing]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>STM - check</h3>
+              <pre><code class="hljs scala" data-trim>
+              object STM {
+                def check(p: Boolean): STM[Nothing, Unit]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>STM - alternative</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait STM[E, A] {
+                def orElse[E1, A1 >: A](that: => STM[E1, A1]): STM[E1, A1]
+              }
+
+              val failableTx: STM[String, Int]
+
+              failableTx orElse STM.succeed(0)
+              </code></pre>
+          </section>
+          <section>
+              <h3>STM - commit</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait STM[E, A] {
+                def commit: IO[E, A] = STM.atomically(this)
+              }
+
+              object STM {
+                def atomically[E, A](stm: STM[E, A]): IO[E, A]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>TRef[A]</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait TRef[A] {
+                val get: STM[Nothing, A]
+                def set(newValue: A): STM[Nothing, Unit]
+                def update(f: A => A): STM[Nothing, A]
+                def updateSome(f: PartialFunction[A, A]): STM[Nothing, A]
+                def modify[B](f: A => (B, A)): STM[Nothing, B]
+                def modifySome[B](default: B)(f: PartialFunction[A, (B, A)]): STM[Nothing, B]
+              }
+
+              object TRef {
+                def make[A](a: A): STM[Nothing, TRef[A]]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>Example</h3>
+          </section>
+          <section>
+              <h3>TPromise[E, A]</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait TPromise[E, A] {
+                def await: STM[E, A]
+                def done(v: Either[E, A]): STM[Nothing, Boolean]
+                def fail(e: E): STM[Nothing, Boolean]
+                def poll: STM[Nothing, Option[STM[E, A]]]
+                def succeed(a: A): STM[Nothing, Boolean]
+              }
+
+              object TPromise {
+                def make[E, A]: STM[Nothing, TPromise[E, A]]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>TSemaphore</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait TSemaphore {
+                def acquire: STM[Nothing, Unit]
+                def acquireN(n: Long): STM[Nothing, Unit]
+                def available: STM[Nothing, Long]
+                def release: STM[Nothing, Unit]
+                def releaseN(n: Long): STM[Nothing, Unit]
+                def withPermit[E, B](stm: STM[E, B]): STM[E, B]
+              }
+
+              object TSemaphore {
+                def make(n: Long): STM[Nothing, TSemaphore]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>TQueue[A]</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait TQueue[A] {
+                def offer(a: A): STM[Nothing, Unit]
+                def offerAll(as: List[A]): STM[Nothing, Unit]
+                def poll: STM[Nothing, Option[A]]
+                def size: STM[Nothing, Int]
+                def take: STM[Nothing, A]
+                def takeAll: STM[Nothing, List[A]]
+                def takeUpTo(max: Int): STM[Nothing, List[A]]
+              }
+
+              object TQueue {
+                def make[A](capacity: Int): STM[Nothing, TQueue[A]]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>TArray[A]</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait TArray[A] {
+                def apply(index: Int): STM[Nothing, A]
+                def fold[Z](acc: Z)(op: (Z, A) => Z): STM[Nothing, Z]
+                def foldM[E, Z](acc: Z)(op: (Z, A) => STM[E, Z]): STM[E, Z]
+                def foreach[E](f: A => STM[E, Unit]): STM[E, Unit]
+                def transform(f: A => A): STM[Nothing, Unit]
+                def transformM[E](f: A => STM[E, A]): STM[E, Unit]
+                def update(index: Int, fn: A => A): STM[Nothing, A]
+                def updateM[E](index: Int, fn: A => STM[E, A]): STM[E, A]
+              }
+
+              object TArray {
+                def make[A](data: A*): STM[Nothing, TArray[A]]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>TMap[K, V]</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait TMap[K, V] {
+                def contains(k: K): STM[Nothing, Boolean]
+                def delete(k: K): STM[Nothing, Unit]
+                def fold[A](zero: A)(op: (A, (K, V)) => A): STM[Nothing, A]
+                def foldM[A, E](zero: A)(op: (A, (K, V)) => STM[E, A]): STM[E, A]
+                def foreach[E](f: (K, V) => STM[E, Unit]): STM[E, Unit]
+                def get(k: K): STM[Nothing, Option[V]]
+                def getOrElse(k: K, default: => V): STM[Nothing, V]
+                def keys: STM[Nothing, List[K]]
+                def merge(k: K, v: V)(f: (V, V) => V): STM[Nothing, V]
+                def put(k: K, v: V): STM[Nothing, Unit]
+                def removeIf(p: (K, V) => Boolean): STM[Nothing, Unit]
+                def retainIf(p: (K, V) => Boolean): STM[Nothing, Unit]
+                def toList: STM[Nothing, List[(K, V)]]
+                def transform(f: (K, V) => (K, V)): STM[Nothing, Unit]
+                def transformM[E](f: (K, V) => STM[E, (K, V)]): STM[E, Unit]
+                def transformValues(f: V => V): STM[Nothing, Unit]
+                def transformValuesM[E](f: V => STM[E, V]): STM[E, Unit]
+                def values: STM[Nothing, List[V]]
+              }
+
+              object TMap {
+                final def make[K, V](data: (K, V)*): STM[Nothing, TMap[K, V]]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>TSet[A]</h3>
+              <pre><code class="hljs scala" data-trim>
+              trait TSet[A] {
+                def contains(a: A): STM[Nothing, Boolean]
+                def delete(a: A): STM[Nothing, Unit]
+                def diff(other: TSet[A]): STM[Nothing, Unit]
+                def fold[B](zero: B)(op: (B, A) => B): STM[Nothing, B]
+                def foldM[B, E](zero: B)(op: (B, A) => STM[E, B]): STM[E, B]
+                def foreach[E](f: A => STM[E, Unit]): STM[E, Unit]
+                def intersect(other: TSet[A]): STM[Nothing, Unit]
+                def put(a: A): STM[Nothing, Unit]
+                def removeIf(p: A => Boolean): STM[Nothing, Unit]
+                def retainIf(p: A => Boolean): STM[Nothing, Unit]
+                def size: STM[Nothing, Int]
+                def toList: STM[Nothing, List[A]]
+                def transform(f: A => A): STM[Nothing, Unit]
+                def transformM[E](f: A => STM[E, A]): STM[E, Unit]
+                def union(other: TSet[A]): STM[Nothing, Unit]
+              }
+
+              object TSet {
+                def make[A](data: A*): STM[Nothing, TSet[A]]
+              }
+              </code></pre>
+          </section>
+          <section>
+              <h3>Improvements</h3>
+              <ul>
+                  <li>Stack safety (WIP)</li>
+                  <li>Documentation (WIP)</li>
+                  <li>Performance</li>
+              </ul>
+          </section>
+          <section>
+              <h3>Takeaways</h3>
+          </section>
 			</div>
 		</div>
 
