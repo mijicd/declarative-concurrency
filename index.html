@@ -111,7 +111,9 @@
               <pre><code class="hljs scala" data-trim>
               trait STM[E, A] {
                 def fold[B](f: E => B, g: A => B): STM[Nothing, B]
-                def foldM[E1, B](f: E => STM[E1, B], g: A => STM[E1, B]): STM[E1, B]
+
+                def foldM[E1, B](f: E => STM[E1, B],
+                                 g: A => STM[E1, B]): STM[E1, B]
               }
 
               val recovered: STM[Nothing, Boolean] =
@@ -119,18 +121,13 @@
               </code></pre>
           </section>
           <section>
-              <h3>STM - retry</h3>
+              <h3>STM - check & retry</h3>
               <pre><code class="hljs scala" data-trim>
               object STM {
                 val retry: STM[Nothing, Nothing]
-              }
-              </code></pre>
-          </section>
-          <section>
-              <h3>STM - check</h3>
-              <pre><code class="hljs scala" data-trim>
-              object STM {
-                def check(p: Boolean): STM[Nothing, Unit]
+
+                final def check(p: Boolean): STM[Nothing, Unit] =
+                  if (p) STM.unit else retry
               }
               </code></pre>
           </section>
@@ -165,9 +162,7 @@
                 val get: STM[Nothing, A]
                 def set(newValue: A): STM[Nothing, Unit]
                 def update(f: A => A): STM[Nothing, A]
-                def updateSome(f: PartialFunction[A, A]): STM[Nothing, A]
                 def modify[B](f: A => (B, A)): STM[Nothing, B]
-                def modifySome[B](default: B)(f: PartialFunction[A, (B, A)]): STM[Nothing, B]
               }
 
               object TRef {
