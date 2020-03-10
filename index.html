@@ -9,7 +9,7 @@
 
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/reveal.css">
-  <link rel="stylesheet" href="css/theme/solarized.css">
+  <link rel="stylesheet" href="css/theme/league.css">
 
   <!-- Theme used for syntax highlighting of code -->
   <link rel="stylesheet" href="lib/css/monokai.css">
@@ -71,6 +71,7 @@
         <section>
           <h3>TRef</h3>
           <pre><code class="hljs scala" data-trim>
+<<<<<<< HEAD
                     trait TRef[A] {
                       val get: STM[Nothing, A]
                       def set(newValue: A): STM[Nothing, Unit]
@@ -82,6 +83,19 @@
                       def make[A](a: A): STM[Nothing, TRef[A]]
                     }
                     </code></pre>
+=======
+            trait TRef[A] {
+              val get: STM[Nothing, A]
+              def set(newValue: A): STM[Nothing, Unit]
+              def update(f: A => A): STM[Nothing, A]
+              def modify[B](f: A => (B, A)): STM[Nothing, B]
+            }
+
+            object TRef {
+              def make[A](a: A): STM[Nothing, TRef[A]]
+            }
+          </code></pre>
+>>>>>>> 2f9d6cd... Improve code snippets formatting
         </section>
         <section>
           <h3>STM[E, A]</h3>
@@ -91,6 +105,7 @@
           </ul>
         </section>
         <section>
+<<<<<<< HEAD
           <h3>STM - succeed & fail</h3>
           <pre><code class="hljs scala" data-trim>
                     object STM {
@@ -174,6 +189,91 @@
                       def atomically[E, A](stm: STM[E, A]): IO[E, A]
                     }
                     </code></pre>
+=======
+          <h3>Succeed & fail</h3>
+          <pre><code class="hljs scala" data-trim>
+            object STM {
+              def fail[E](e: E): STM[E, Nothing]
+              def succeed[A](a: A): STM[Nothing, A]
+            }
+
+            val success = STM.succeed("Hello!")
+            val failure = STM.fail("Nothing to see here...")
+          </code></pre>
+        </section>
+        <section>
+          <h3>Chaining</h3>
+          <pre><code class="hljs scala" data-trim>
+            trait STM[E, A] {
+              def map[B](f: A => B): STM[E, B]
+              def flatMap[E1 >: E, B](f: A => STM[E1, B]): STM[E1, B]
+            }
+
+            val sum: STM[Nothing, Long] =
+              for {
+                a <- account1.get
+                b <- account2.get
+              } yield a + b
+          </code></pre>
+        </section>
+        <section>
+          <h3>Zipping</h3>
+          <pre><code class="hljs scala" data-trim>
+            trait STM[E, A] {
+              def zip[E1 >: E, B](that: => STM[E1, B]): STM[E1, (A, B)]
+            }
+            
+            // STM[Nothing, (Long, Long)]
+            val bothAccounts = account1.get zip account2.get
+          </code></pre>
+        </section>
+        <section>
+          <h3>Folds</h3>
+          <pre><code class="hljs scala" data-trim>
+            trait STM[E, A] {
+              def fold[B](f: E => B, g: A => B): STM[Nothing, B]
+              
+              def foldM[E1, B](f: E => STM[E1, B], 
+                                g: A => STM[E1, B]): STM[E1, B]
+            }
+            
+            // STM[Nothing, Boolean]
+            val recovered = failure.fold(_ => false, _ => true)
+          </code></pre>
+        </section>
+        <section>
+          <h3>Check & retry</h3>
+          <pre><code class="hljs scala" data-trim>
+            object STM {
+              val retry: STM[Nothing, Nothing]
+              
+              final def check(p: Boolean): STM[Nothing, Unit] =
+                if (p) STM.unit else retry
+            }
+          </code></pre>
+        </section>
+        <section>
+          <h3>Alternative</h3>
+          <pre><code class="hljs scala" data-trim>
+            trait STM[E, A] {
+              def orElse[E1, A1 >: A](that: => STM[E1, A1]): STM[E1, A1]
+            }
+
+            STM.fail("failure") orElse STM.succeed(1)
+          </code></pre>
+        </section>
+        <section>
+          <h3>Commit</h3>
+          <pre><code class="hljs scala" data-trim>
+            trait STM[E, A] {
+              def commit: IO[E, A] = STM.atomically(this)
+            }
+
+            object STM {
+              def atomically[E, A](stm: STM[E, A]): IO[E, A]
+            }
+          </code></pre>
+>>>>>>> 2f9d6cd... Improve code snippets formatting
         </section>
       </section>
 
@@ -188,10 +288,18 @@
       </section>
 
       <section>
+<<<<<<< HEAD
         <h3>Improvements</h3>
+=======
+        <h3>Example</h3>
+      </section>
+
+      <section>
+        <h3>Work in progress</h3>
+>>>>>>> 2f9d6cd... Improve code snippets formatting
         <ul>
-          <li>Documentation [WIP]</li>
-          <li>Performance [WIP]</li>
+          <li>Documentation</li>
+          <li>Performance</li>
           <li>Effects</li>
         </ul>
       </section>
