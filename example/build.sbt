@@ -5,13 +5,24 @@ addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 inThisBuild(
   List(
     scalaVersion := "2.12.10",
-    version := "0.1.0",
     organization := "com.github.mijicd"
   )
 )
 
+lazy val ZioVersion = "1.0.0-RC18"
+
 lazy val example = project
   .in(file("."))
+  .aggregate(transfer, pqueue)
+
+lazy val transfer = project
+  .in(file("transfer"))
   .settings(
-    libraryDependencies += "dev.zio" %% "zio" % "1.0.0-RC18"
+    libraryDependencies += "dev.zio" %% "zio" % ZioVersion
+  )
+
+lazy val pqueue = project
+  .in(file("pqueue"))
+  .settings(
+    libraryDependencies += "dev.zio" %% "zio" % ZioVersion
   )
