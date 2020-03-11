@@ -71,19 +71,6 @@
         <section>
           <h3>Transactional reference</h3>
           <pre><code class="hljs scala" data-trim>
-<<<<<<< HEAD
-                    trait TRef[A] {
-                      val get: STM[Nothing, A]
-                      def set(newValue: A): STM[Nothing, Unit]
-                      def update(f: A => A): STM[Nothing, A]
-                      def modify[B](f: A => (B, A)): STM[Nothing, B]
-                    }
-
-                    object TRef {
-                      def make[A](a: A): STM[Nothing, TRef[A]]
-                    }
-                    </code></pre>
-=======
             trait TRef[A] {
               val get: STM[Nothing, A]
               def set(newValue: A): STM[Nothing, Unit]
@@ -95,7 +82,6 @@
               def make[A](a: A): STM[Nothing, TRef[A]]
             }
           </code></pre>
->>>>>>> 2f9d6cd... Improve code snippets formatting
         </section>
         <section>
           <h3>ZSTM[R, E, A]</h3>
@@ -107,96 +93,7 @@
           </ul>
         </section>
         <section>
-<<<<<<< HEAD
-<<<<<<< HEAD
-          <h3>STM - succeed & fail</h3>
-          <pre><code class="hljs scala" data-trim>
-                    object STM {
-                      def fail[E](e: E): STM[E, Nothing]
-                      def succeed[A](a: A): STM[Nothing, A]
-                    }
-
-                    val success = STM.succeed("Hello!")
-                    val failure = STM.fail("Nothing to see here...")
-                    </code></pre>
-        </section>
-        <section>
-          <h3>STM - chaining</h3>
-          <pre><code class="hljs scala" data-trim>
-                    trait STM[E, A] {
-                      def map[B](f: A => B): STM[E, B]
-                      def flatMap[E1 >: E, B](f: A => STM[E1, B]): STM[E1, B]
-                    }
-
-                    val sum: STM[Nothing, Long] =
-                      for {
-                        a <- account1.get
-                        b <- account2.get
-                      } yield a + b
-                    </code></pre>
-        </section>
-        <section>
-          <h3>STM - zipping</h3>
-          <pre><code class="hljs scala" data-trim>
-                    trait STM[E, A] {
-                      def zip[E1 >: E, B](that: => STM[E1, B]): STM[E1, (A, B)]
-                    }
-
-                    val bothAccounts: STM[Nothing, (Long, Long)] =
-                      account1.get zip account2.get
-                </code></pre>
-        </section>
-        <section>
-          <h3>STM - folds</h3>
-          <pre><code class="hljs scala" data-trim>
-                    trait STM[E, A] {
-                      def fold[B](f: E => B, g: A => B): STM[Nothing, B]
-
-                      def foldM[E1, B](f: E => STM[E1, B],
-                                       g: A => STM[E1, B]): STM[E1, B]
-                    }
-
-                    val recovered: STM[Nothing, Boolean] =
-                      failure.fold(_ => false, _ => true)
-                    </code></pre>
-        </section>
-        <section>
-          <h3>STM - check & retry</h3>
-          <pre><code class="hljs scala" data-trim>
-                    object STM {
-                      val retry: STM[Nothing, Nothing]
-
-                      final def check(p: Boolean): STM[Nothing, Unit] =
-                        if (p) STM.unit else retry
-                    }
-                    </code></pre>
-        </section>
-        <section>
-          <h3>STM - alternative</h3>
-          <pre><code class="hljs scala" data-trim>
-                    trait STM[E, A] {
-                      def orElse[E1, A1 >: A](that: => STM[E1, A1]): STM[E1, A1]
-                    }
-
-                    STM.fail("failure") orElse STM.succeed(1)
-                    </code></pre>
-        </section>
-        <section>
-          <h3>STM - commit</h3>
-          <pre><code class="hljs scala" data-trim>
-                    trait STM[E, A] {
-                      def commit: IO[E, A] = STM.atomically(this)
-                    }
-
-                    object STM {
-                      def atomically[E, A](stm: STM[E, A]): IO[E, A]
-                    }
-                    </code></pre>
-=======
-          <h3>Succeed & fail</h3>
-=======
           <h3>Construction</h3>
->>>>>>> ab3a7f7... Change headers
           <pre><code class="hljs scala" data-trim>
             object ZSTM {
               def fail[E](e: => E): STM[E, Nothing]
@@ -304,7 +201,6 @@
               def atomically[R, E, A](stm: ZSTM[R, E, A]): ZIO[R, E, A]
             }
           </code></pre>
->>>>>>> 2f9d6cd... Improve code snippets formatting
         </section>
       </section>
 
@@ -315,64 +211,67 @@
       <section>
         <section>
           <h3>Data structures</h3>
-<<<<<<< HEAD
-=======
         </section>
         <section>
           <h3>Promise</h3>
           <ul>
-            <li>...</li>
+            <li>TPromise[E, A]</li>
+            <li>Holds a reference to Option[Either[E, A]]</li>
           </ul>
         </section>
         <section>
           <h3>Semaphore</h3>
           <ul>
-            <li>...</li>
+            <li>TSemaphore</li>
+            <li>Holds a reference to number of permits</li>
           </ul>
         </section>
         <section>
           <h3>Reentrant lock</h3>
           <ul>
-            <li>...</li>
+            <li>TReentrantLock</li>
+            <li>Holds a reference to Either[ReadLock, WriteLock]</li>
+            <li>TODO: define locks</li>
           </ul>
         </section>
         <section>
           <h3>Queue</h3>
           <ul>
-            <li>...</li>
+            <li>TQueue[A]</li>
+            <li>Holds a reference to scala queue</li>
           </ul>
         </section>
         <section>
           <h3>Array</h3>
           <ul>
-            <li>...</li>
+            <li>TArray[A]</li>
+            <li>Wraps an array of references</li>
+            <li>Independent access to each index</li>
           </ul>
         </section>
         <section>
           <h3>Map</h3>
           <ul>
-            <li>...</li>
+            <li>TMap[K, V]</li>
+            <li>Holds a reference to array of "buckets"</li>
+            <li>Implemented as "classical" hash map</li>
           </ul>
         </section>
         <section>
           <h3>Set</h3>
           <ul>
-            <li>...</li>
+            <li>TSet[A]</li>
+            <li>Map with unit values</li>
           </ul>
->>>>>>> ab3a7f7... Change headers
         </section>
       </section>
 
       <section>
-<<<<<<< HEAD
-        <h3>Improvements</h3>
-=======
         <h3>Example</h3>
       </section>
 
       <section>
         <h3>Work in progress</h3>
->>>>>>> 2f9d6cd... Improve code snippets formatting
         <ul>
           <li>Documentation</li>
           <li>Performance</li>
