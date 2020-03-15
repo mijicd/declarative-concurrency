@@ -1,8 +1,8 @@
 package example
 
 import zio._
+import zio.clock._
 import zio.console._
-import zio.duration._
 import zio.stm._
 
 object Example extends App {
@@ -45,17 +45,15 @@ object Example extends App {
       for {
         _     <- putStrLn("Enter any key to exit...")
         queue <- PriorityQueue.make[String].commit
-        lowPriority = ZIO.foreach(0 to 100) { i =>
-          ZIO.sleep(1.millis) *> queue.offer(s"Offer: ${i} with priority 3", 3).commit
-        }
-        highPriority = ZIO.foreach(0 to 100) { i =>
-          ZIO.sleep(2.millis) *> queue.offer(s"Offer: ${i} with priority 0", 0).commit
-        }
-        _ <- ZIO.forkAll(List(lowPriority, highPriority))
-        _ <- queue.take.commit.flatMap(putStrLn(_)).forever.fork
-        _ <- getStrLn
+        _     <- makeOffers(queue, 3)
+        _     <- makeOffers(queue, 0)
+        _     <- queue.take.commit.flatMap(putStrLn(_)).forever.fork
+        _     <- getStrLn
       } yield 0
 
     program.fold(_ => 1, _ => 0)
   }
+
+  private def makeOffers(queue: PriorityQueue[String], priority: Int): UIO[Unit] =
+    ZIO.foreach_(0 to 100)(i => queue.offer(s"Offer: $i with priority $priority", priority).commit)
 }
