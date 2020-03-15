@@ -231,7 +231,6 @@
           <ul>
             <li>TReentrantLock</li>
             <li>Holds a reference to Either[ReadLock, WriteLock]</li>
-            <li>TODO: define locks</li>
           </ul>
         </section>
         <section>
@@ -253,15 +252,17 @@
           <h3>Map</h3>
           <ul>
             <li>TMap[K, V]</li>
-            <li>Holds a reference to array of "buckets"</li>
             <li>Implemented as "classical" hash map</li>
+            <li>Uses chaining to resolve collisions</li>
+            <li>Holds a reference to array of buckets</li>
+            <li>Tracks load and capacity via separate references</li>
           </ul>
         </section>
         <section>
           <h3>Set</h3>
           <ul>
             <li>TSet[A]</li>
-            <li>Map with unit values</li>
+            <li>Wrapper over map with unit values</li>
           </ul>
         </section>
       </section>
