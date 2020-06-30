@@ -71,15 +71,15 @@
         <section>
           <h3>Transactional reference</h3>
           <pre><code class="hljs scala" data-trim>
-            trait TRef[A] {
-              val get: STM[Nothing, A]
-              def set(newValue: A): STM[Nothing, Unit]
-              def update(f: A => A): STM[Nothing, A]
-              def modify[B](f: A => (B, A)): STM[Nothing, B]
+            trait ZTRef[+EA, +EB, -A, +B] {
+              def get: STM[EB, B]
+              def set(newValue: A): STM[EA, Unit]
+              def update(f: A => A): USTM[Unit]
+              def modify[B](f: A => (B, A)): USTM[B]
             }
 
-            object TRef {
-              def make[A](a: A): STM[Nothing, TRef[A]]
+            object ZTRef {
+              def make[A](a: A): USTM[TRef[A]]
             }
           </code></pre>
         </section>
@@ -98,14 +98,14 @@
             object ZSTM {
               def fail[E](e: => E): STM[E, Nothing]
               def fromEither[E, A](e: => Either[E, A]): STM[E, A]
-              def fromFunction[R, A](f: R => A): ZSTM[R, Nothing, A]
+              def fromFunction[R, A](f: R => A): URSTM[R, A]
               def fromFunctionM[R, E, A](f: R => STM[E, A]): ZSTM[R, E, A]
-              def fromOption[A](v: => Option[A]): STM[Unit, A]
-              def fromTry[A](a: => Try[A]): STM[Throwable, A]
-              def left[A](a: => A): STM[Nothing, Either[A, Nothing]]
-              def right[A](a: => A): STM[Nothing, Either[Nothing, A]]
-              def some[A](a: => A): STM[Nothing, Option[A]]
-              def succeed[A](a: => A): STM[Nothing, A]
+              def fromOption[A](v: => Option[A]): STM[Option[Nothing], A]
+              def fromTry[A](a: => Try[A]): TaskSTM[A]
+              def left[A](a: => A): USTM[Either[A, Nothing]]
+              def right[A](a: => A): USTM[Either[Nothing, A]]
+              def some[A](a: => A): USTM[Option[A]]
+              def succeed[A](a: => A): USTM[A]
             }
           </code></pre>
         </section>
@@ -117,7 +117,7 @@
               def mapError[E1](f: E => E1): ZSTM[R, E1, B]
             }
 
-            // STM[Nothing, Int]
+            // USTM[Int]
             STM.succeed(21).map(_ * 2)
 
             // STM[Exception, Nothing]
@@ -128,10 +128,11 @@
           <h3>Chaining</h3>
           <pre><code class="hljs scala" data-trim>
             trait ZSTM[-R, +E, +A] {
-              def flatMap[E1 >: E, B](f: A => STM[E1, B]): STM[E1, B]
+              def flatMap[R1 <: R, E1 >: E, B](f: A => ZSTM[R1, E1, B]): ZSTM[R1, E1, B]
+              def flatMapError[R1 <: R, E2](f: E => USTM[R1, E2]): ZSTM[R1, E2, A]
             }
 
-            // STM[Nothing, Long]
+            // USTM[Long]
             for {
               a <- account1.get
               b <- account2.get
@@ -148,7 +149,7 @@
               def zipWith[R1 <: R, E1 >: E, B, C](that: => ZSTM[R1, E1, B])(f: (A, B) => C): ZSTM[R1, E1, C]
             }
             
-            // STM[Nothing, (Long, Long)]
+            // USTM[(Long, Long)]
             account1.get <*> account2.get
           </code></pre>
         </section>
@@ -156,11 +157,11 @@
           <h3>Folds</h3>
           <pre class="wide"><code class="hljs scala" data-trim>
             trait ZSTM[-R, +E, +A] {
-              def fold[B](f: E => B, g: A => B): ZSTM[R, Nothing, B]
+              def fold[B](f: E => B, g: A => B): URSTM[R, B]
               def foldM[R1 <: R, E1, B](f: E => ZSTM[R1, E1, B], g: A => ZSTM[R1, E1, B]): ZSTM[R1, E1, B]
             }
             
-            // STM[Nothing, Boolean]
+            // USTM[Boolean]
             STM.fail("boom").fold(_ => false, _ => true)
           </code></pre>
         </section>
@@ -173,9 +174,9 @@
             }
 
             object ZSTM {
-              val retry: STM[Nothing, Nothing]
+              val retry: USTM[Nothing]
 
-              def check(p: Boolean): ZSTM[R, Nothing, Unit] =
+              def check(p: Boolean): URSTM[R, Unit] =
                 if (p) ZSTM.unit else retry
             }
           </code></pre>
@@ -185,6 +186,7 @@
           <pre class="medium"><code class="hljs scala" data-trim>
             trait ZSTM[-R, +E, +A] {
               def orElse[R1 <: R, E1, A1 >: A](that: => ZSTM[R1, E1, A1]): ZSTM[R1, E1, A1]
+              def orTry[R1 <: R, E1, A1 >: A](that: => ZSTM[R1, E1, A1]): ZSTM[R1, E1, A1]
             }
 
             STM.fail("failure") <> STM.succeed(1)
