@@ -69,11 +69,11 @@
           def transfer(from: Account, to: Account, amount: Long): Unit = {
             var loop = true
             while (loop) {
-              from.modify { balance =>
+              from.update { balance =>
                 if (balance < amount) from.await()
                 else {
                   balance -= amount
-                  to.modify(balance => balance += amount)
+                  to.update(balance => balance += amount)
                   loop = false
                 }
               }
@@ -102,6 +102,17 @@
         <h3>Basic idea</h3>
         <section data-background="/images/workflow.png" data-background-size="contain">
         </section>
+      </section>
+
+      <section>
+        <h3>Characteristics</h3>
+        <ul>
+          <li class="fragment">Composable</li>
+          <li class="fragment">Declarative</li>
+          <li class="fragment">Optimistic</li>
+          <li class="fragment">Stack-safe</li>
+          <li class="fragment">(moderately) performant</li>
+        </ul>
       </section>
 
       <section>
