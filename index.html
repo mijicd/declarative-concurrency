@@ -77,16 +77,12 @@
 
       <section>
         <h3>Software transactional memory</h3>
-      </section>
+      </section>  
+      
       <section>
         <h3>Basic idea</h3>
-        <!-- insert transaction flow instead -->
-        <ul>
-          <li class="fragment">accumulate transaction log</li>
-          <li class="fragment">rollback failures</li>
-          <li class="fragment">retry when not ready</li>
-          <li class="fragment">commit otherwise</li>
-        </ul>
+        <section data-background="/images/workflow.png" data-background-size="contain">
+        </section>
       </section>
 
       <section>
@@ -155,7 +151,7 @@
         </section>
         <section>
           <h3>Chaining</h3>
-          <pre><code class="hljs scala" data-trim>
+          <pre class="wide"><code class="hljs scala" data-trim>
             trait ZSTM[-R, +E, +A] {
               def flatMap[R1 <: R, E1 >: E, B](f: A => ZSTM[R1, E1, B]): ZSTM[R1, E1, B]
               def flatMapError[R1 <: R, E2](f: E => USTM[R1, E2]): ZSTM[R1, E2, A]
@@ -305,7 +301,7 @@
       </section>
 
       <section>
-        <h3>Superpowers</h3>
+        <h3>"Superpowers"</h3>
       </section>
 
       <section>
