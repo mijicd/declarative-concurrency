@@ -52,14 +52,33 @@
       </section>
       <section>
         <h3>Race conditions</h3>
-        <pre><code class="hljs java" data-trim>
-          // TODO: add example
+        <pre><code class="hljs scala" data-trim>
+          class Counter {
+            private var count = 0L
+
+            def increment(): Int = {
+              count += 1
+              count
+            }
+          }
         </code></pre>
       </section>
       <section>
         <h3>Deadlocks</h3>
-        <pre><code class="hljs java" data-trim>
-          // TODO: add example
+        <pre><code class="hljs scala" data-trim>
+          def transfer(from: Account, to: Account, amount: Long): Unit = {
+            var loop = true
+            while (loop) {
+              from.modify { balance =>
+                if (balance < amount) from.await()
+                else {
+                  balance -= amount
+                  to.modify(balance => balance += amount)
+                  loop = false
+                }
+              }
+            }
+          }
         </code></pre>
       </section>
       <section>
@@ -312,7 +331,6 @@
           <li>Sagas</li>
         </ul>
       </section>
-
 
       <section>
         <h3>Learn more</h3>
