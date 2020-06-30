@@ -12,15 +12,19 @@ object Example extends App {
     def make(n: Long): UIO[Account] = TRef.makeCommit(n)
   }
 
-  def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
-    for {
-      alice <- Account.make(1000L)
-      bob   <- Account.make(0)
-      _     <- refund(alice).race(transfer(alice, bob))
-      av    <- alice.get.commit
-      bv    <- bob.get.commit
-      _     <- console.putStrLn(s"Alice has $av, while Bob has $bv euros.")
-    } yield 0
+  def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
+    val program =
+      for {
+        alice <- Account.make(1000L)
+        bob   <- Account.make(0)
+        _     <- refund(alice).race(transfer(alice, bob))
+        av    <- alice.get.commit
+        bv    <- bob.get.commit
+        _     <- console.putStrLn(s"Alice has $av, while Bob has $bv euros.")
+      } yield ()
+
+    program.exitCode
+  }
 
   private def refund(account: Account): URIO[Clock, Int] = {
     val amount = 100L

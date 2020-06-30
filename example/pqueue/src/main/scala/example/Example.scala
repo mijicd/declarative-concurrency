@@ -40,7 +40,7 @@ object Example extends App {
       STM.mapN(TRef.make(Int.MaxValue), TMap.empty[Int, TQueue[A]])(new PriorityQueue(_, _))
   }
 
-  def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
+  def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
     val program =
       for {
         _     <- putStrLn("Enter any key to exit...")
@@ -49,9 +49,9 @@ object Example extends App {
         _     <- makeOffers(queue, 0)
         _     <- queue.take.commit.flatMap(putStrLn(_)).forever.fork
         _     <- getStrLn
-      } yield 0
+      } yield ()
 
-    program.fold(_ => 1, _ => 0)
+    program.exitCode
   }
 
   private def makeOffers(queue: PriorityQueue[String], priority: Int): UIO[Unit] =

@@ -9,7 +9,7 @@ inThisBuild(
   )
 )
 
-lazy val ZioVersion = "1.0.0-RC18"
+lazy val ZioVersion = "1.0.0-RC21-1"
 
 lazy val example = project
   .in(file("."))
